@@ -64,10 +64,10 @@ export function PetView({ petId }: { petId: string }) {
           </Y2KWindow>
 
           {thoughts.length > 0 && (
-            <Y2KWindow title="💭 Thought Stream">
+            <Y2KWindow title="💭 Thought Stream (last 3)">
               <div className="thoughts-scroll">
-                {thoughts.map((t, i) => (
-                  <ThoughtBubble key={i} text={t} fresh={i === 0} />
+                {thoughts.slice(0, 3).map((t, i) => (
+                  <ThoughtBubble key={t} text={t} fresh={i === 0} />
                 ))}
               </div>
             </Y2KWindow>

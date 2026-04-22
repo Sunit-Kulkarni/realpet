@@ -461,7 +461,7 @@ hr.rainbow {
 
 /* ===== THOUGHT SCROLL ===== */
 .thoughts-scroll {
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

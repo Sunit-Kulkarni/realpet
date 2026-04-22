@@ -55,6 +55,16 @@ export async function getRecentEvents(url: string, petId: string, limit = 20): P
   return rows as PetEvent[];
 }
 
+export async function getRecentThoughts(url: string, petId: string, limit = 3): Promise<{ text: string; created_at: string }[]> {
+  const sql = getDb(url);
+  const rows = await sql`
+    SELECT payload, created_at FROM events
+    WHERE pet_id = ${petId} AND kind = 'thought' AND payload IS NOT NULL
+    ORDER BY created_at DESC LIMIT ${limit}
+  `;
+  return rows.map((r) => ({ text: (r.payload as { text: string }).text, created_at: r.created_at as string }));
+}
+
 export async function listPets(url: string): Promise<Pet[]> {
   const sql = getDb(url);
   const rows = await sql`SELECT * FROM pets ORDER BY created_at DESC LIMIT 50`;
