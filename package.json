@@ -1,0 +1,5 @@
+{
+  "name": "realpet",
+  "private": true,
+  "workspaces": ["worker", "web"]
+}

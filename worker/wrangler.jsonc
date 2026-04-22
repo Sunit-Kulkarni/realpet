@@ -1,0 +1,42 @@
+{
+  "name": "realpet-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PET_ROOM",
+        "class_name": "PetRoom"
+      },
+      {
+        "name": "GLOBAL_CHAT",
+        "class_name": "GlobalChatRoom"
+      }
+    ]
+  },
+
+  "workflows": [
+    {
+      "name": "PET_LIFECYCLE",
+      "binding": "PET_LIFECYCLE",
+      "class_name": "PetLifecycle"
+    }
+  ],
+
+  "ai": {
+    "binding": "AI"
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PetRoom"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["GlobalChatRoom"]
+    }
+  ]
+}
