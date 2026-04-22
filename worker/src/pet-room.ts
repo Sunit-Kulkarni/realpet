@@ -1,6 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Env, Pet, ClientMsg, ServerMsg } from "./types";
 import { getPet, updatePetStats, appendEvent } from "./db";
+import { generateThought } from "./ai";
+
+const TICK_MS = 2 * 60 * 1000; // 2 minutes
 
 export class PetRoom extends DurableObject<Env> {
   private pet: Pet | null = null;
@@ -27,6 +30,14 @@ export class PetRoom extends DurableObject<Env> {
       }
 
       return new Response(null, { status: 101, webSocket: client });
+    }
+
+    // Start the alarm-based tick loop for a new pet
+    if (url.pathname === "/start") {
+      const petId = url.searchParams.get("petId");
+      if (!petId) return new Response("Missing petId", { status: 400 });
+      await this.startAlarm(petId);
+      return new Response("ok");
     }
 
     if (url.pathname === "/internal/tick") {
@@ -59,6 +70,40 @@ export class PetRoom extends DurableObject<Env> {
     return new Response("Not found", { status: 404 });
   }
 
+  async alarm() {
+    const petId = await this.ctx.storage.get<string>("petId");
+    if (!petId) return;
+
+    try {
+      const pet = await getPet(this.env.NEON_DATABASE_URL, petId);
+      if (!pet) return;
+
+      const hunger = Math.min(100, pet.hunger + 5);
+      const happiness = Math.max(0, pet.happiness - 3);
+
+      await updatePetStats(this.env.NEON_DATABASE_URL, petId, hunger, happiness);
+      await appendEvent(this.env.NEON_DATABASE_URL, petId, "tick");
+
+      const updated = { ...pet, hunger, happiness };
+      this.pet = updated;
+      this.broadcast({ type: "state", pet: updated });
+      this.broadcast({ type: "event", kind: "tick", at: Date.now() });
+
+      if (hunger > 70 || happiness < 30 || Math.random() < 0.3) {
+        try {
+          const thought = await generateThought(updated, this.env.AI);
+          await appendEvent(this.env.NEON_DATABASE_URL, petId, "thought", { text: thought });
+          this.broadcast({ type: "thought", text: thought, mood: { hunger, happiness }, at: Date.now() });
+        } catch { /* thought failure never stops the tick */ }
+      }
+    } catch (e) {
+      console.error("alarm tick failed:", e);
+    }
+
+    // Always reschedule regardless of errors
+    await this.ctx.storage.setAlarm(Date.now() + TICK_MS);
+  }
+
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
     try {
       const msg = JSON.parse(message as string) as ClientMsg;
@@ -80,6 +125,11 @@ export class PetRoom extends DurableObject<Env> {
 
   async webSocketClose(ws: WebSocket) {
     ws.close();
+  }
+
+  private async startAlarm(petId: string) {
+    await this.ctx.storage.put("petId", petId);
+    await this.ctx.storage.setAlarm(Date.now() + TICK_MS);
   }
 
   private async handleAction(kind: "feed" | "play" | "chat", petId: string) {
