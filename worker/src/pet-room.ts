@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Env, Pet, ClientMsg, ServerMsg } from "./types";
-import { getPet, updatePetStats, appendEvent } from "./db";
+import { getPet, updatePetStats, appendEvent, getRecentThoughts } from "./db";
 import { generateThought } from "./ai";
 
 const TICK_MS = 2 * 60 * 1000; // 2 minutes
@@ -27,6 +27,17 @@ export class PetRoom extends DurableObject<Env> {
       }
       if (this.pet) {
         server.send(JSON.stringify({ type: "state", pet: this.pet } satisfies ServerMsg));
+
+        // Replay last 3 thoughts so the client sees them even if they missed the live broadcast
+        const recentThoughts = await getRecentThoughts(this.env.NEON_DATABASE_URL, petId, 3);
+        for (const t of recentThoughts.reverse()) {
+          server.send(JSON.stringify({
+            type: "thought",
+            text: t.text,
+            mood: { hunger: this.pet.hunger, happiness: this.pet.happiness },
+            at: new Date(t.created_at).getTime(),
+          } satisfies ServerMsg));
+        }
       }
 
       return new Response(null, { status: 101, webSocket: client });
