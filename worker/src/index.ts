@@ -71,9 +71,11 @@ export default {
         const pet = await createPet(env.NEON_DATABASE_URL, body);
 
         try {
-          await env.PET_LIFECYCLE.create({ id: pet.id, params: { petId: pet.id } });
+          const doId = env.PET_ROOM.idFromName(pet.id);
+          const stub = env.PET_ROOM.get(doId);
+          await stub.fetch(new Request(`https://do/start?petId=${pet.id}`));
         } catch (e) {
-          console.error("Workflow start failed:", e);
+          console.error("Alarm start failed:", e);
         }
 
         return json({ id: pet.id });
