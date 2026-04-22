@@ -543,3 +543,41 @@ hr.rainbow {
 .pet-card-stat-row { display: flex; align-items: center; gap: 4px; font-size: 10px; }
 .pet-card-stat-row .stat-track { flex: 1; height: 8px; }
 .pet-card-footer { font-size: 10px; color: #000080; text-align: right; }
+
+/* ===== PET PAGE TWO-COLUMN LAYOUT ===== */
+.pet-view { max-width: 960px; margin: 0 auto; }
+
+.pet-page-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 12px;
+  align-items: start;
+}
+
+.pet-page-left {
+  min-width: 0;
+}
+
+.pet-page-right {
+  min-width: 0;
+}
+
+.chat-sticky {
+  position: sticky;
+  top: 12px;
+}
+
+/* Make chat taller when it has side space */
+.chat-sticky .chat-messages {
+  height: 340px;
+}
+
+/* Collapse to single column on narrow screens */
+@media (max-width: 640px) {
+  .pet-page-layout {
+    grid-template-columns: 1fr;
+  }
+  .chat-sticky {
+    position: static;
+  }
+}
